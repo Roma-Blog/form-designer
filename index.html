@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Конструктор форм</title>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js"></script>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    
+    <div class="app-container" x-data="formBuilder()">
+        <!-- Табы -->
+        <div class="tabs">
+            <button @click="activeTab = 'constructor'" 
+                    :class="{ 'active': activeTab === 'constructor' }"
+                    class="tab-btn">
+                Конструктор форм
+            </button>
+            <button @click="activeTab = 'conditions'" 
+                    :class="{ 'active': activeTab === 'conditions' }"
+                    class="tab-btn">
+                Условия показа
+            </button>
+        </div>
+
+        <!-- Вкладка: Конструктор форм -->
+        <div x-show="activeTab === 'constructor'" class="tab-content">
+            <div class="container">
+                <div class="toolbar">
+                    <button @click="addField()" class="btn btn-primary">Добавить поле</button>
+                    <button @click="addTitle()" class="btn btn-secondary">Добавить заголовок</button>
+                </div>
+                
+                <div id="fields-container">
+                    <template x-for="(item, index) in items" :key="item.id">
+                        <div>
+                            <!-- Блок заголовка -->
+                            <template x-if="item.type === 'title'">
+                                <div class="block block-title">
+                                    <div class="block-header">
+                                        <div class="block-controls">
+                                            <button @click="moveUp(index)" :disabled="index === 0" class="btn-move">↑</button>
+                                            <button @click="moveDown(index)" :disabled="index === items.length - 1" class="btn-move">↓</button>
+                                            <span class="block-badge">Заголовок</span>
+                                        </div>
+                                        <button @click="removeItem(index)" class="btn-delete">Удалить</button>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Текст заголовка</label>
+                                        <input type="text" x-model="item.title" class="input-title" placeholder="Например: Основные параметры">
+                                    </div>
+                                </div>
+                            </template>
+                            
+                            <!-- Блок поля -->
+                            <template x-if="item.type === 'field'">
+                                <div class="block block-field">
+                                    <div class="block-header">
+                                        <div class="block-controls">
+                                            <button @click="moveUp(index)" :disabled="index === 0" class="btn-move">↑</button>
+                                            <button @click="moveDown(index)" :disabled="index === items.length - 1" class="btn-move">↓</button>
+                                        </div>
+                                        <button @click="removeItem(index)" class="btn-delete">Удалить</button>
+                                    </div>
+
+                                    <div>
+                                        <span>ID: </span><span x-text="item.id"></span>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label>Параметр</label>
+                                        <select x-model="item.parameter" @change="updateRadioOptions(item)">
+                                            <option value="d">Диаметр (d)</option>
+                                            <option value="hod_array">Рабочий ход (hod_array)</option>
+                                            <option value="stock">Исполнение штока (stock)</option>
+                                            <option value="groove">Тип канавки (groove)</option>
+                                            <option value="stock_material">Материал штока (stock_material)</option>
+                                            <option value="cylinder_type">Тип цилиндра (cylinder_type)</option>
+                                            <option value="braking">Торможение (braking)</option>
+                                            <option value="back_cover">Задняя крышка (back_cover)</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label>Отображение поля</label>
+                                        <div class="radio-group">
+                                            <label class="radio-label">
+                                                <input type="radio" x-model="item.displayColumns" value="one" :name="item.id">
+                                                <span>В одну колонку</span>
+                                            </label>
+                                            <label class="radio-label">
+                                                <input type="radio" x-model="item.displayColumns" value="two" :name="item.id">
+                                                <span>В две колонки</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label>Вид формы</label>
+                                        <select x-model="item.type_form" @change="updateRadioOptions(item)">
+                                            <option value="array_of_values">Массив значений</option>
+                                            <option value="array_of_values_with_arbitrary_input">Массив значений с произвольным вводом</option>
+                                            <option value="selecting_radio_button_values">Выбор значений переключателей</option>
+                                            <option value="yes_no_range">Да/Нет диапазон</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="form-group" x-show="showValueLabel(item.type_form)" x-cloak>
+                                        <label>Заголовок произвольного значения</label>
+                                        <input type="text" x-model="item.customValueLabel" placeholder="Например: Произвольный ход">
+                                    </div>
+
+                                    <div class="form-group" x-show="showValueUnit(item.type_form)" x-cloak>
+                                        <label>Единица измерения</label>
+                                        <input type="text" x-model="item.customValueUnit" placeholder="Например: мм">
+                                    </div>
+
+                                    <div class="form-group" x-show="showRadioOptions(item.type_form)" x-cloak>
+                                        <label>Значения переключателей <span class="hint">(найдено: <span x-text="item.radioOptions?.length || 0"></span>)</span></label>
+                                        <div class="radio-options-list">
+                                            <template x-for="(opt, optIndex) in (item.radioOptions || [])" :key="optIndex">
+                                                <div class="radio-option-item">
+                                                    <div class="radio-option-value">
+                                                        <label>Значение</label>
+                                                        <input type="text" x-model="opt.value" class="input-small" readonly disabled>
+                                                    </div>
+                                                    <div class="radio-option-label">
+                                                        <label>Лейбл (отображение)</label>
+                                                        <input type="text" x-model="opt.label" class="input-full" placeholder="Текст для пользователя">
+                                                    </div>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+                    
+                    <div x-show="items.length === 0" class="empty-state">
+                        Нет добавленных элементов. Нажмите "Добавить поле" или "Добавить заголовок"
+                    </div>
+                </div>
+                
+                <div x-show="items.length > 0" class="save-wrapper">
+                    <button @click="saveForm()" class="btn-save">Сохранить форму</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Вкладка: Условия показа -->
+        <div x-show="activeTab === 'conditions'" class="tab-content">
+            <div class="container conditions-container">
+                <div class="conditions-global">
+                    <div class="conditions-header">
+                        <h2>Настройка условий показа полей</h2>
+                        <div class="conditions-actions">
+                            <button @click="addGlobalCondition" class="btn-add-condition-global">
+                                + Добавить общее условие
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="conditions-list" x-show="globalConditions.length > 0">
+                        <template x-for="(conditionGroup, groupIndex) in globalConditions" :key="conditionGroup.id">
+                            <div class="condition-group">
+                                <div class="condition-group-header">
+                                    <span class="condition-group-title">Группа условий #<span x-text="groupIndex + 1"></span></span>
+                                    <button @click="removeGlobalCondition(groupIndex)" class="btn-delete">Удалить группу</button>
+                                </div>
+
+                                <div class="condition-group-content">
+                                    <!-- Выбор поля -->
+                                    <div class="condition-row">
+                                        <label>Поле:</label>
+                                        <select x-model="conditionGroup.fieldId">
+                                            <option value="">-- Выберите поле --</option>
+                                            <template x-for="field in getFields()">
+                                                <option :value="field.id" x-text="'Поле ' + (getFieldIndex(field.id) + 1) + ' (' + getParameterLabel(field.parameter) + ')'"></option>
+                                            </template>
+                                        </select>
+                                    </div>
+
+                                    <!-- Действие -->
+                                    <div class="condition-row">
+                                        <label>Действие:</label>
+                                        <select x-model="conditionGroup.action">
+                                            <option value="show">Показывать</option>
+                                            <option value="hide">Скрывать</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- Логика между условиями -->
+                                    <div class="condition-row" x-show="conditionGroup.conditions.length > 1">
+                                        <label>Логика:</label>
+                                        <div class="radio-group">
+                                            <label>
+                                                <input type="radio" x-model="conditionGroup.logic" value="AND">
+                                                <span>И (все условия)</span>
+                                            </label>
+                                            <label>
+                                                <input type="radio" x-model="conditionGroup.logic" value="OR">
+                                                <span>ИЛИ (любое условие)</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <!-- Список условий -->
+                                    <div class="sub-conditions">
+                                        <div class="sub-conditions-title">Условия:</div>
+                                        <template x-for="(condition, condIndex) in conditionGroup.conditions" :key="condition.id">
+                                            <div class="sub-condition-item">
+                                                <select x-model="condition.parameter">
+                                                    <option value="d">Диаметр</option>
+                                                    <option value="hod_array">Рабочий ход</option>
+                                                    <option value="stock">Исполнение штока</option>
+                                                    <option value="stock_material">Материал штока</option>
+                                                    <option value="cylinder_type">Тип цилиндра</option>
+                                                    <option value="braking">Торможение</option>
+                                                    <option value="groove">Паз</option>
+                                                    <option value="back_cover">Задняя крышка</option>
+                                                </select>
+
+                                                <select x-model="condition.operator">
+                                                    <option value="equals">Равно</option>
+                                                    <option value="notEquals">Не равно</option>
+                                                    <option value="greater">Больше</option>
+                                                    <option value="less">Меньше</option>
+                                                    <option value="greaterOrEqual">Больше или равно</option>
+                                                    <option value="lessOrEqual">Меньше или равно</option>
+                                                    <option value="inArray">Входит в список</option>
+                                                </select>
+
+                                                <div x-show="condition.operator !== 'inArray'" class="condition-value-input">
+                                                    <input type="text" x-model="condition.value" placeholder="Значение">
+                                                </div>
+
+                                                <div x-show="condition.operator === 'inArray'" class="condition-value-input">
+                                                    <textarea x-model="condition.value" 
+                                                              placeholder="Значения через запятую&#10;Пример: 32,40,50" 
+                                                              rows="2"></textarea>
+                                                </div>
+
+                                                <button @click="removeConditionFromGroup(groupIndex, condIndex)" class="btn-remove-sub">✕</button>
+                                            </div>
+                                        </template>
+                                        
+                                        <button @click="addConditionToGroup(groupIndex)" class="btn-add-sub">
+                                            + Добавить условие
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+
+                    <div x-show="globalConditions.length === 0" class="empty-state">
+                        Нет условий. Нажмите "Добавить общее условие"
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="global-save">
+            <button @click="saveFullConfig()" class="btn-save-all">Сохранить всё</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    
+
+    <script src="script.js"></script>
+</body>
+</html>
