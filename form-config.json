@@ -1,0 +1,162 @@
+{
+  "formItems": [
+    {
+      "id": "1780881225151",
+      "type": "field",
+      "parameter": "d",
+      "type_form": "array_of_values_with_arbitrary_input",
+      "customValueLabel": "Произвольный диаметер",
+      "customValueUnit": "мм",
+      "displayColumns": "two",
+      "options": "",
+      "radioOptions": [],
+      "optionsArray": [],
+      "title": "Диаметр цилиндра"
+    },
+    {
+      "id": "1780881238534",
+      "type": "field",
+      "parameter": "hod_array",
+      "type_form": "array_of_values",
+      "customValueLabel": "",
+      "customValueUnit": "",
+      "displayColumns": "two",
+      "options": "",
+      "radioOptions": [],
+      "optionsArray": []
+    },
+    {
+      "id": "1780881373622",
+      "type": "title",
+      "title": "Новый заголовок"
+    },
+    {
+      "id": "1780881284958",
+      "type": "field",
+      "parameter": "stock",
+      "type_form": "selecting_radio_button_values",
+      "customValueLabel": "",
+      "customValueUnit": "",
+      "displayColumns": "one",
+      "options": "",
+      "radioOptions": [
+        {
+          "value": "null",
+          "label": "Одинарный"
+        },
+        {
+          "value": "T",
+          "label": "Двойной"
+        }
+      ],
+      "optionsArray": [],
+      "title": "Исполнение штока"
+    },
+    {
+      "id": "1780881407343",
+      "type": "field",
+      "parameter": "groove",
+      "type_form": "selecting_radio_button_values",
+      "customValueLabel": "",
+      "customValueUnit": "",
+      "displayColumns": "one",
+      "options": "",
+      "radioOptions": [
+        {
+          "value": "null",
+          "label": "null"
+        },
+        {
+          "value": "F",
+          "label": "F"
+        }
+      ],
+      "optionsArray": []
+    },
+    {
+      "id": "1780898825018",
+      "type": "field",
+      "parameter": "custom",
+      "type_form": "yes_no_range",
+      "customValueLabel": "",
+      "customValueUnit": "мм",
+      "displayColumns": "two",
+      "options": "",
+      "radioOptions": [],
+      "optionsArray": [],
+      "customMinParam": "min_hod",
+      "customMaxParam": "max_hod",
+      "title": "Ход"
+    }
+  ],
+  "conditions": [
+    {
+      "id": 1780881440650,
+      "fieldId": "1780881284958",
+      "action": "show",
+      "logic": "AND",
+      "conditions": [
+        {
+          "id": "1780881440650",
+          "conditionFieldId": "1780881225151",
+          "operator": "isNotEmpty",
+          "value": "0",
+          "valueTo": ""
+        },
+        {
+          "id": "1780894030309",
+          "conditionFieldId": "1780881238534",
+          "operator": "isNotEmpty",
+          "value": "",
+          "valueTo": ""
+        }
+      ]
+    },
+    {
+      "id": 1780881487454,
+      "fieldId": "1780881407343",
+      "action": "show",
+      "logic": "OR",
+      "conditions": [
+        {
+          "id": "1780881487454",
+          "conditionFieldId": "1780881225151",
+          "operator": "isNotEmpty",
+          "value": "0",
+          "valueTo": ""
+        },
+        {
+          "id": "1780894073414",
+          "conditionFieldId": "1780881238534",
+          "operator": "isNotEmpty",
+          "value": "",
+          "valueTo": ""
+        }
+      ]
+    },
+    {
+      "id": 1780898855242,
+      "fieldId": "1780898825018",
+      "action": "show",
+      "logic": "AND",
+      "conditions": [
+        {
+          "id": "1780898855242",
+          "conditionFieldId": "1780881225151",
+          "operator": "isNotEmpty",
+          "value": "",
+          "valueTo": ""
+        },
+        {
+          "id": "1780898860450",
+          "conditionFieldId": "1780881238534",
+          "operator": "isNotEmpty",
+          "value": "",
+          "valueTo": ""
+        }
+      ]
+    }
+  ],
+  "version": "1.0",
+  "exportedAt": "2026-06-08T08:25:40.349Z"
+}

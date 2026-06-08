@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Форма подбора</title>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js"></script>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <div x-data="siteApp()">
+        <template x-if="loading">
+            <div>Загрузка...</div>
+        </template>
+
+        <template x-if="error">
+            <div x-text="error"></div>
+        </template>
+
+        <template x-if="!loading && !error && config">
+            <form @submit.prevent="submitForm()">
+                <template x-for="item in config.formItems" :key="item.id">
+                    <div x-show="shouldShow(item)">
+
+                        <!-- Заголовок -->
+                        <template x-if="item.type === 'title'">
+                            <h2 x-text="item.title"></h2>
+                        </template>
+
+                        <!-- Поле: массив значений (radio) -->
+                        <template x-if="item.type === 'field' && item.type_form === 'array_of_values'">
+                            <fieldset>
+                                <legend x-text="getParameterLabel(item.parameter)"></legend>
+                                <div :class="item.displayColumns === 'two' ? 'cols-2' : 'cols-1'">
+                                    <template x-for="opt in getFieldOptions(item)" :key="opt.value">
+                                        <label>
+                                            <input type="radio"
+                                                   :name="'field_' + item.id"
+                                                   :value="opt.value"
+                                                   x-model="formData[item.id]">
+                                            <span x-text="opt.label"></span>
+                                        </label>
+                                    </template>
+                                </div>
+                            </fieldset>
+                        </template>
+
+                        <!-- Поле: массив значений + произвольный ввод -->
+                        <template x-if="item.type === 'field' && item.type_form === 'array_of_values_with_arbitrary_input'">
+                            <fieldset>
+                                <legend x-text="item.title || getParameterLabel(item.parameter)"></legend>
+                                
+                                <!-- Radio: Выбрать из массива значений -->
+                                <div>
+                                    <label>
+                                        <input type="radio"
+                                            :name="'mode_' + item.id"
+                                            value="array"
+                                            x-model="formData[item.id].mode"
+                                            @change="formData[item.id].custom = ''">
+                                        <span>Выбрать из массива значений</span>
+                                    </label>
+                                </div>
+
+                                <!-- Список значений (всегда видим) -->
+                                <div :class="item.displayColumns === 'two' ? 'cols-2' : 'cols-1'">
+                                    <template x-for="opt in getFieldOptions(item)" :key="opt.value">
+                                        <label>
+                                            <input type="radio"
+                                                :name="'field_' + item.id"
+                                                :value="opt.value"
+                                                x-model="formData[item.id].selected"
+                                                @change="onSelectFromArray(item, opt.value)">
+                                            <span x-text="opt.label"></span>
+                                        </label>
+                                    </template>
+                                </div>
+
+                                <!-- Radio: Произвольное значение -->
+                                <div>
+                                    <label>
+                                        <input type="radio"
+                                            :name="'mode_' + item.id"
+                                            value="custom"
+                                            x-model="formData[item.id].mode"
+                                            @change="formData[item.id].selected = ''">
+                                        <span x-text="item.customValueLabel || 'Произвольное значение'"></span>
+                                    </label>
+                                </div>
+
+                                <!-- Поле произвольного значения (всегда видимо) -->
+                                <div>
+                                    <label>
+                                        <span>Введите значение:</span>
+                                        <input type="number"
+                                            x-model="formData[item.id].custom"
+                                            placeholder="Например: 35"
+                                            step="any"
+                                            @input="onCustomInput(item)"
+                                            @blur="correctCustomValue(item)">
+                                        <span x-text="item.customValueUnit || ''"></span>
+                                    </label>
+                                    
+                                    <!-- Подсказка с диапазоном -->
+                                    <template x-if="getRangeLimits(item).hasLimits">
+                                        <div>
+                                            Допустимый диапазон: <span x-text="getRangeLimits(item).min"></span>...<span x-text="getRangeLimits(item).max"></span> <span x-text="item.customValueUnit || ''"></span>
+                                        </div>
+                                    </template>
+                                </div>
+                            </fieldset>
+                        </template>
+
+                        <!-- Поле: радиокнопки -->
+                        <template x-if="item.type === 'field' && item.type_form === 'selecting_radio_button_values'">
+                            <fieldset>
+                                <legend x-text="getParameterLabel(item.parameter)"></legend>
+                                <div :class="item.displayColumns === 'two' ? 'cols-2' : 'cols-1'">
+                                    <template x-for="opt in getFieldOptions(item)" :key="opt.value">
+                                        <label>
+                                            <input type="radio"
+                                                   :name="'field_' + item.id"
+                                                   :value="opt.value"
+                                                   x-model="formData[item.id]">
+                                            <span x-text="opt.label"></span>
+                                        </label>
+                                    </template>
+                                </div>
+                            </fieldset>
+                        </template>
+
+                        <!-- Поле: Да/Нет диапазон (обычный) -->
+                        <template x-if="item.type === 'field' && item.type_form === 'yes_no_range'">
+                            <fieldset>
+                                <legend x-text="item.title || getParameterLabel(item.parameter)"></legend>
+                                
+                                <!-- Переключатели Нет / Да -->
+                                <div>
+                                    <label>
+                                        <input type="radio"
+                                            :name="'mode_' + item.id"
+                                            value="no"
+                                            x-model="formData[item.id].mode"
+                                            @change="formData[item.id].value = ''">
+                                        <span>Нет</span>
+                                    </label>
+                                    <label>
+                                        <input type="radio"
+                                            :name="'mode_' + item.id"
+                                            value="yes"
+                                            x-model="formData[item.id].mode">
+                                        <span>Да</span>
+                                    </label>
+                                </div>
+
+                                <!-- Поле ввода значения -->
+                                <div>
+                                    <label>
+                                        <span>Значение:</span>
+                                        <input type="number"
+                                            x-model="formData[item.id].value"
+                                            step="any"
+                                            @focus="formData[item.id].mode = 'yes'"
+                                            @input="formData[item.id].mode = 'yes'"
+                                            @blur="correctRangeValue(item)">
+                                        <span x-text="item.customValueUnit || ''"></span>
+                                    </label>
+                                    
+                                    <!-- Подсказка с диапазоном -->
+                                    <template x-if="getRangeLimits(item).hasLimits">
+                                        <div>
+                                            Допустимый диапазон: <span x-text="getRangeLimits(item).min"></span>...<span x-text="getRangeLimits(item).max"></span> <span x-text="item.customValueUnit || ''"></span>
+                                        </div>
+                                    </template>
+                                </div>
+                            </fieldset>
+                        </template>
+                    </div>
+                </template>
+
+                <button type="submit">Отправить</button>
+            </form>
+        </template>
+    </div>
+
+    <script src="script/site.js"></script>
+</body>
+</html>

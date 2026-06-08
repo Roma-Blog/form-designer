@@ -67,10 +67,15 @@
                                     <div>
                                         <span>ID: </span><span x-text="item.id"></span>
                                     </div>
+
+                                    <div class="form-group">
+                                        <label>Заголовок поля</label>
+                                        <input type="text" x-model="item.title" class="input-title" placeholder="Например: Диаметр цилиндра">
+                                    </div>
                                     
                                     <div class="form-group">
                                         <label>Параметр</label>
-                                        <select x-model="item.parameter" @change="updateRadioOptions(item)">
+                                        <select x-model="item.parameter" @change="updateRadioOptions(item); if (item.parameter === 'custom') item.type_form = 'yes_no_range'">
                                             <option value="d">Диаметр (d)</option>
                                             <option value="hod_array">Рабочий ход (hod_array)</option>
                                             <option value="stock">Исполнение штока (stock)</option>
@@ -79,6 +84,7 @@
                                             <option value="cylinder_type">Тип цилиндра (cylinder_type)</option>
                                             <option value="braking">Торможение (braking)</option>
                                             <option value="back_cover">Задняя крышка (back_cover)</option>
+                                            <option value="custom">Произвольное поле</option>
                                         </select>
                                     </div>
 
@@ -86,17 +92,18 @@
                                         <label>Отображение поля</label>
                                         <div class="radio-group">
                                             <label class="radio-label">
-                                                <input type="radio" x-model="item.displayColumns" value="one" :name="item.id">
-                                                <span>В одну колонку</span>
-                                            </label>
-                                            <label class="radio-label">
                                                 <input type="radio" x-model="item.displayColumns" value="two" :name="item.id">
                                                 <span>В две колонки</span>
+                                            </label>
+                                            <label class="radio-label">
+                                                <input type="radio" x-model="item.displayColumns" value="one" :name="item.id">
+                                                <span>В одну колонку</span>
                                             </label>
                                         </div>
                                     </div>
 
-                                    <div class="form-group">
+                                    <!-- Скрываем для произвольного поля, так как вид формы всегда один -->
+                                    <div class="form-group" x-show="item.parameter !== 'custom'">
                                         <label>Вид формы</label>
                                         <select x-model="item.type_form" @change="updateRadioOptions(item)">
                                             <option value="array_of_values">Массив значений</option>
@@ -111,7 +118,8 @@
                                         <input type="text" x-model="item.customValueLabel" placeholder="Например: Произвольный ход">
                                     </div>
 
-                                    <div class="form-group" x-show="showValueUnit(item.type_form)" x-cloak>
+                                    <!-- Показываем для yes_no_range, array_of_values_with_arbitrary_input И для custom -->
+                                    <div class="form-group" x-show="showValueUnit(item.type_form) || item.parameter === 'custom'" x-cloak>
                                         <label>Единица измерения</label>
                                         <input type="text" x-model="item.customValueUnit" placeholder="Например: мм">
                                     </div>
@@ -133,6 +141,39 @@
                                             </template>
                                         </div>
                                     </div>
+
+                                <!-- Настройки только для произвольного поля -->
+                                <template x-if="item.parameter === 'custom'">
+                                    <div class="form-group">
+                                        <label>Диапазон значений из базы:</label>
+                                        
+                                        <div class="form-group">
+                                            <label>Параметр для минимального значения</label>
+                                            <select @change="item.customMinParam = $event.target.value">
+                                                <option value="">-- Выберите параметр --</option>
+                                                <template x-for="param in getNumericParameters()">
+                                                    <option :value="param.key" 
+                                                            :selected="String(param.key) === String(item.customMinParam)"
+                                                            x-text="param.label">
+                                                    </option>
+                                                </template>
+                                            </select>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label>Параметр для максимального значения</label>
+                                            <select @change="item.customMaxParam = $event.target.value">
+                                                <option value="">-- Выберите параметр --</option>
+                                                <template x-for="param in getNumericParameters()">
+                                                    <option :value="param.key" 
+                                                            :selected="String(param.key) === String(item.customMaxParam)"
+                                                            x-text="param.label">
+                                                    </option>
+                                                </template>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </template>
                                 </div>
                             </template>
                         </div>
@@ -174,10 +215,13 @@
                                     <!-- Выбор поля -->
                                     <div class="condition-row">
                                         <label>Поле:</label>
-                                        <select x-model="conditionGroup.fieldId">
+                                        <select @change="conditionGroup.fieldId = $event.target.value">
                                             <option value="">-- Выберите поле --</option>
                                             <template x-for="field in getFields()">
-                                                <option :value="field.id" x-text="'Поле ' + (getFieldIndex(field.id) + 1) + ' (' + getParameterLabel(field.parameter) + ')'"></option>
+                                                <option :value="String(field.id)" 
+                                                        :selected="String(field.id) === String(conditionGroup.fieldId)"
+                                                        x-text="'Поле ' + (getFieldIndex(field.id) + 1) + ' (' + getParameterLabel(field.parameter) + ')'">
+                                                </option>
                                             </template>
                                         </select>
                                     </div>
@@ -196,11 +240,11 @@
                                         <label>Логика:</label>
                                         <div class="radio-group">
                                             <label>
-                                                <input type="radio" x-model="conditionGroup.logic" value="AND">
+                                                <input type="radio" x-model="conditionGroup.logic" value="AND" :name="conditionGroup.id">
                                                 <span>И (все условия)</span>
                                             </label>
                                             <label>
-                                                <input type="radio" x-model="conditionGroup.logic" value="OR">
+                                                <input type="radio" x-model="conditionGroup.logic" value="OR" :name="conditionGroup.id">
                                                 <span>ИЛИ (любое условие)</span>
                                             </label>
                                         </div>
@@ -211,36 +255,65 @@
                                         <div class="sub-conditions-title">Условия:</div>
                                         <template x-for="(condition, condIndex) in conditionGroup.conditions" :key="condition.id">
                                             <div class="sub-condition-item">
-                                                <select x-model="condition.parameter">
-                                                    <option value="d">Диаметр</option>
-                                                    <option value="hod_array">Рабочий ход</option>
-                                                    <option value="stock">Исполнение штока</option>
-                                                    <option value="stock_material">Материал штока</option>
-                                                    <option value="cylinder_type">Тип цилиндра</option>
-                                                    <option value="braking">Торможение</option>
-                                                    <option value="groove">Паз</option>
-                                                    <option value="back_cover">Задняя крышка</option>
+                                                <!-- Поле, значение которого проверяем -->
+                                                <select @change="condition.conditionFieldId = $event.target.value">
+                                                    <option value="">-- Выберите поле для проверки --</option>
+                                                    <template x-for="field in getFields()">
+                                                        <option :value="String(field.id)" 
+                                                                :selected="String(field.id) === String(condition.conditionFieldId)"
+                                                                x-text="'Поле ' + (getFieldIndex(field.id) + 1) + ' (' + getParameterLabel(field.parameter) + ')'">
+                                                        </option>
+                                                    </template>
                                                 </select>
 
+                                                <!-- Оператор -->
                                                 <select x-model="condition.operator">
-                                                    <option value="equals">Равно</option>
-                                                    <option value="notEquals">Не равно</option>
-                                                    <option value="greater">Больше</option>
-                                                    <option value="less">Меньше</option>
-                                                    <option value="greaterOrEqual">Больше или равно</option>
-                                                    <option value="lessOrEqual">Меньше или равно</option>
-                                                    <option value="inArray">Входит в список</option>
+                                                    <optgroup label="Наличие значения">
+                                                        <option value="isEmpty">Пусто (не выбрано)</option>
+                                                        <option value="isNotEmpty">Не пусто (выбрано)</option>
+                                                    </optgroup>
+                                                    <optgroup label="Сравнение">
+                                                        <option value="equals">Равно</option>
+                                                        <option value="notEquals">Не равно</option>
+                                                        <option value="greater">Больше</option>
+                                                        <option value="less">Меньше</option>
+                                                        <option value="greaterOrEqual">Больше или равно</option>
+                                                        <option value="lessOrEqual">Меньше или равно</option>
+                                                    </optgroup>
+                                                    <optgroup label="Диапазон">
+                                                        <option value="between">Между (от и до)</option>
+                                                    </optgroup>
+                                                    <optgroup label="Список">
+                                                        <option value="inArray">Входит в список</option>
+                                                        <option value="notInArray">Не входит в список</option>
+                                                    </optgroup>
+                                                    <optgroup label="Строки">
+                                                        <option value="startsWith">Начинается с</option>
+                                                        <option value="endsWith">Заканчивается на</option>
+                                                        <option value="contains">Содержит</option>
+                                                    </optgroup>
                                                 </select>
 
-                                                <div x-show="condition.operator !== 'inArray'" class="condition-value-input">
-                                                    <input type="text" x-model="condition.value" placeholder="Значение">
-                                                </div>
+                                                <!-- Значение для between -->
+                                                <template x-if="condition.operator === 'between'">
+                                                    <div>
+                                                        <input type="text" x-model="condition.value" placeholder="От">
+                                                        <span>—</span>
+                                                        <input type="text" x-model="condition.valueTo" placeholder="До">
+                                                    </div>
+                                                </template>
 
-                                                <div x-show="condition.operator === 'inArray'" class="condition-value-input">
+                                                <!-- Значение для inArray/notInArray -->
+                                                <template x-if="condition.operator === 'inArray' || condition.operator === 'notInArray'">
                                                     <textarea x-model="condition.value" 
-                                                              placeholder="Значения через запятую&#10;Пример: 32,40,50" 
-                                                              rows="2"></textarea>
-                                                </div>
+                                                            placeholder="Значения через запятую&#10;Пример: 32,40,50" 
+                                                            rows="2"></textarea>
+                                                </template>
+
+                                                <!-- Значение для остальных (кроме isEmpty/isNotEmpty) -->
+                                                <template x-if="!['isEmpty', 'isNotEmpty', 'between', 'inArray', 'notInArray'].includes(condition.operator)">
+                                                    <input type="text" x-model="condition.value" placeholder="Значение">
+                                                </template>
 
                                                 <button @click="removeConditionFromGroup(groupIndex, condIndex)" class="btn-remove-sub">✕</button>
                                             </div>
@@ -267,9 +340,6 @@
         </div>
     </div>
 
-    <script src="script.js"></script>
-    
-
-    <script src="script.js"></script>
+    <script src="script/admin.js"></script>
 </body>
 </html>
